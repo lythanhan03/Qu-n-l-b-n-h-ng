@@ -8,9 +8,13 @@ MSSV: K215480106001
   VatTu(MaVT,TenVT,DVT,SLHangCon)
   HoaDonBan(MaHD,NgayXuat,HotenKH)
   HangXuat(MaHD,MaVT,DonGia,SLBan)
+ 
   +) tạo view đưa ra các hoá đơn xuất vật tư trong năm 2024
   gồm(MaHD,NgayXuat,MaVT,TenVT,ThanhTien)
+  
   +) hàm trả về bảng gồm các thông tin
   (MaHD,NgayXuat,MaVT,DonGia,SLBan,NgayThu)
+  
   +)tạo trigger để tự động giảm số lượng còn(SLHangCon) trong bảng VatTu
   mỗi khi thêm mới dữ liệu cho bảng HangXuat(đưa ra thông báo lỗi nếu SLBan>SLHangCon)
+[update sql.docx](https://github.com/user-attachments/files/15751000/update.sql.docx)
