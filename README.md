@@ -19,11 +19,11 @@ MSSV: **K215480106001**
   +  Cập nhật hoá đơn
   +  Tìm kiếm hoá đơn
  - Quản lý số lượng hàng :
-  + Quản lý số lượng hàng còn
+   + Quản lý số lượng hàng còn
     
  ...
  - Báo cáo và phân tích doanh số:
-  + Hệ thống quản lý bán hàng cung cấp các báo cáo chi tiết về doanh số, hiệu suất bán hàng
+   + Hệ thống quản lý bán hàng cung cấp các báo cáo chi tiết về doanh số, hiệu suất bán hàng
     
  ....
 
