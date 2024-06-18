@@ -19,14 +19,11 @@ MSSV: **K215480106001**
   +  Cập nhật hoá đơn
   +  Tìm kiếm hoá đơn
  - Quản lý số lượng hàng :
-   + Quản lý số lượng hàng còn
+   + Quản lý số lượng hàng còn, và đặt lại hàng nếu số lượng hàng còn nhỏ hơn ngưỡng tự chọn
     
- ...
  - Báo cáo và phân tích doanh số:
    + Hệ thống quản lý bán hàng cung cấp các báo cáo chi tiết về doanh số, hiệu suất bán hàng
     
- ....
-
   + tạo cơ sở dữ liệu quản lý hàng gồm các bảng :
     
   *VatTu*(🔑ID,MaVT,TenVT,DVT,SLHangCon)
@@ -34,6 +31,12 @@ MSSV: **K215480106001**
   *HoaDonBan*(🔑ID, MaHD,NgayXuat,HotenKH,DiaChiKH)
   
   *HangXuat*(🔑ID,*MaHD*,*MaVT*,DonGia,SLBan)
+
+  Tạo thêm các bảng sau để phục vụ cho các chức năng
+
+  *DatHangLai*(🔑ID,MaVT,TenVT,SLHangCon,NgayDatHangLai)
+
+  *BaoCaoDoanhThuThang*(🔑MaHD,HoTenKH,TongDoanhThu,TongDoanhThuThangHienTai)
  
  Dựa trên cơ sở sở dữ liệu trên ta tiến hành tạo các bảng như sau:
 
@@ -102,10 +105,47 @@ Tạo bảng Hàng xuất (chi tiết hoá đơn)
 >-   **DonGia**: Đơn giá của vật tư khi xuất bán, là một số nguyên không NULL.
 >-   **SLBan**: Số lượng vật tư được bán trong hóa đơn, là một số nguyên không NULL.
 >-   **FOREIGN KEY**: Định nghĩa ràng buộc khóa ngoại để đảm bảo tính toàn vẹn tham chiếu dữ liệu giữa các bảng. Trường `MaHD` tham chiếu đến `MaHD` trong bảng `HoaDonBan`, và trường `MaVT` tham chiếu đến `MaVT` trong bảng `VatTu`. Tùy chọn `ON DELETE CASCADE` chỉ định rằng nếu một hóa đơn hoặc một vật tư được xóa, thì các bản ghi liên quan trong bảng `HangXuat` cũng sẽ bị xóa để duy trì tính toàn vẹn dữ liệu.
+```sql
+CREATE TABLE DatHangLai
+(
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+    MaVT NVARCHAR(50) NOT NULL,
+    TenVT NVARCHAR(50) NOT NULL,
+    SLHangCon INT NOT NULL,
+    NgayDatHangLai DATE DEFAULT GETDATE()
+);
+```
+➡️ Bảng này được tạo thêm để phục vụ cho chức năng kiểm tra hàng tồn kho và đặt lại hàng
+
+>- **ID**: Định nghĩa cột ID là khóa chính (primary key), với kiểu dữ liệu là INT, sử dụng IDENTITY(1,1) để tự động tăng giá trị và bắt đầu từ 1.
+
+>- **MaVT**: Định nghĩa cột MaVT với kiểu dữ liệu NVARCHAR(50), không cho phép giá trị NULL.
+
+>- **TenVT**: Định nghĩa cột TenVT với kiểu dữ liệu NVARCHAR(50), không cho phép giá trị NULL.
+
+>- **SLHangCon**: Định nghĩa cột SLHangCon với kiểu dữ liệu INT, không cho phép giá trị NULL.
+
+>- **NgayDatHangLai**: Định nghĩa cột NgayDatHangLai với kiểu dữ liệu DATE, và sử dụng DEFAULT GETDATE() để mặc định giá trị của cột là ngày hiện tại khi có sự thay đổi
+```sql
+CREATE TABLE BaoCaoDoanhThuThang (
+    MaHD NVARCHAR(50) PRIMARY KEY,
+    HoTenKH NVARCHAR(50),
+    TongDoanhThu INT
+);
+```
+➡️ Bảng này được tạo nhằm phục vụ cho chức năng báo cáo doanh thu hàng tháng
+
+>- **MaHD**: Định nghĩa cột MaHD là khóa chính (primary key) của bảng, với kiểu dữ liệu NVARCHAR(50). Khóa chính này sẽ đảm bảo tính duy nhất của mỗi dòng dữ liệu trong bảng BaoCaoDoanhThuThang.
+
+>- **HoTenKH**: Định nghĩa cột HoTenKH với kiểu dữ liệu NVARCHAR(50), không có ràng buộc khóa chính.
+
+>- **TongDoanhThu**: Định nghĩa cột TongDoanhThu với kiểu dữ liệu INT, lưu trữ tổng doanh thu của mỗi hóa đơn.
 
  Ta có các bảng có liên kết như sau
  
- ![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/d38a7a51-dc19-4537-b11f-f5b534f268a8)
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/8d0f11a2-f44f-406b-a112-315806bbf757)
+
+
 
  Thêm dữ liệu cho các bảng
 ```sql
@@ -396,3 +436,205 @@ EXEC LayHoaDonTheoThangNam
     @Month = 6,
     @Year = 2024;
 ```
+**3. Tạo các chức năng**
+
+*3.1 Kiểm tra hàng tồn kho, nhập hàng lại*
+```sql
+----------KIỂM TRA HÀNG TỒN KHO- NHẬP LẠI HÀNG--------
+CREATE TRIGGER trg_Kiemtrakho_DatLaiHang
+ON HangXuat
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @MaVT NVARCHAR(50), @SLBan INT, @Threshold INT;
+
+    -- Lấy giá trị ngưỡng từ bảng cấu hình
+    SELECT @Threshold = GiaTri
+    FROM CauHinh
+    WHERE ThamSo = 'Threshold';
+
+    DECLARE inserted_cursor CURSOR FOR
+    SELECT MaVT, SLBan
+    FROM inserted;
+
+    OPEN inserted_cursor;
+
+    FETCH NEXT FROM inserted_cursor INTO @MaVT, @SLBan;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        -- Cập nhật số lượng hàng tồn kho
+        UPDATE VatTu
+        SET SLHangCon = SLHangCon - @SLBan
+        WHERE MaVT = @MaVT;
+
+        -- Kiểm tra mức tồn kho sau khi cập nhật
+        DECLARE @SLHangCon INT;
+        SELECT @SLHangCon = SLHangCon
+        FROM VatTu
+        WHERE MaVT = @MaVT;
+
+        -- Nếu số lượng hàng còn dưới ngưỡng, thêm vào bảng đặt hàng lại
+        IF @SLHangCon < @Threshold
+        BEGIN
+            INSERT INTO DatHangLai (MaVT, TenVT, SLHangCon)
+            SELECT MaVT, TenVT, SLHangCon
+            FROM VatTu
+            WHERE MaVT = @MaVT;
+
+            PRINT 'Vật tư cần đặt hàng lại: ' + @MaVT + ', Số lượng còn: ' + CAST(@SLHangCon AS NVARCHAR);
+        END
+
+        FETCH NEXT FROM inserted_cursor INTO @MaVT, @SLBan;
+    END
+
+    CLOSE inserted_cursor;
+    DEALLOCATE inserted_cursor;
+END;
+```
+Tạo một bảng để chuyền tham số và giá trị ngưỡng so sánh
+```sql
+CREATE TABLE CauHinh
+(
+    ThamSo NVARCHAR(50) PRIMARY KEY,
+    GiaTri INT
+);
+```
+Thử nghiệm chức năng
+
+Bước 1 nhập dữ liệu vào các bảng liên quan
+
+```sql
+--------------------Test triger kiểm tra và đặt lại hàng---------------
+INSERT INTO VatTu (MaVT, TenVT, DVT, SLHangCon)
+VALUES 
+('VT011', 'Quat cam tay', 'Cái', 100),
+('VT012', 'Ban chai', 'Cái', 200);
+
+-- Thêm dữ liệu mẫu vào bảng HoaDonBan
+INSERT INTO HoaDonBan (MaHD, NgayXuat, HoTenKH, DiaChiKH)
+VALUES 
+('HD008', '2023-06-18', 'Hoang Dinh Cuong', '123 Le Loi'),
+('HD007', '2023-06-18', 'Pham Van Nam', '456 Tran Phu');
+
+-- Thêm dữ liệu mẫu vào bảng HangXuat để kích hoạt trigger
+INSERT INTO HangXuat (MaHD, MaVT, DonGia, SLBan)
+VALUES 
+('HD008', 'VT011', 50000, 95),
+('HD007', 'VT012', 100000, 195);
+```
+> Ban đầu các vật tư 'Quạt cầm tay' có 100 cái
+
+> 'Bàn chải' có 200 cái
+
+> Sau khi đã nhập hoá đơn bán và hàng xuất:
+> + Hoá đơn HD008 đã mua vật tư VT011( quạt cầm tay) 95 cái
+> + Hoá đơn HD007 đã mua vật tư VT012( Bàn chải) 195 cái
+
+Thử chạy chức năng
+```sql
+SELECT * FROM DatHangLai;
+```
+Ta có kết quả như sau: hiển thị số lượng hàng còn và ngày nhập lại và các thông số liên quan đến vật tư đó
+
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/9fb8dd7d-2445-4507-aacf-e86f11500d43)
+
+Ở đây em đang set ngưỡng là 10, nếu nhỏ hơn 10 sẽ nhập hàng lại, như sau
+
+```sql
+INSERT INTO CauHinh (ThamSo, GiaTri)
+VALUES ('Threshold', 10);
+```
+
+Ta có thể điều chỉnh ngưỡng bằng cách sau
+
+```sql
+-- Thay đổi ngưỡng kiểm tra
+UPDATE CauHinh
+SET GiaTri = 20
+WHERE ThamSo = 'Threshold';
+```
+
+*3.2 Báo cáo doanh thu theo tháng*
+
+```sql
+----------Baos cáo doanh thu hàng tháng------------
+-- Khai báo các biến dùng trong cursor
+DECLARE @MaHD NVARCHAR(50), @HoTenKH NVARCHAR(50), @TongDoanhThu INT;
+
+-- Khai báo và thiết lập cursor để truy vấn doanh thu
+DECLARE sales_report_cursor CURSOR FOR
+SELECT HB.MaHD, HB.HoTenKH, SUM(HX.DonGia * HX.SLBan) AS TongDoanhThu
+FROM HoaDonBan HB
+INNER JOIN HangXuat HX ON HB.MaHD = HX.MaHD
+WHERE MONTH(HB.NgayXuat) = MONTH(GETDATE()) AND YEAR(HB.NgayXuat) = YEAR(GETDATE())
+GROUP BY HB.MaHD, HB.HoTenKH;
+
+-- Mở cursor
+OPEN sales_report_cursor;
+
+-- Lấy dữ liệu đầu tiên từ cursor vào các biến
+FETCH NEXT FROM sales_report_cursor INTO @MaHD, @HoTenKH, @TongDoanhThu;
+
+-- Lặp qua các kết quả của cursor
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    -- Chèn kết quả vào bảng BaoCaoDoanhThuThang
+    INSERT INTO BaoCaoDoanhThuThang (MaHD, HoTenKH, TongDoanhThu)
+    VALUES (@MaHD, @HoTenKH, @TongDoanhThu);
+
+    -- Lấy kết quả tiếp theo từ cursor
+    FETCH NEXT FROM sales_report_cursor INTO @MaHD, @HoTenKH, @TongDoanhThu;
+END
+
+-- Đóng cursor
+CLOSE sales_report_cursor;
+
+-- Giải phóng tài nguyên dành cho cursor
+DEALLOCATE sales_report_cursor;
+
+-- Thêm cột TongDoanhThu_TatCa_HD vào bảng BaoCaoDoanhThuThang
+ALTER TABLE BaoCaoDoanhThuThang
+ADD TongDoanhThu_TatCa_HD INT;
+
+-- Cập nhật giá trị cho cột TongDoanhThu_TatCa_HD với tổng doanh thu của tất cả hóa đơn
+UPDATE BaoCaoDoanhThuThang
+SET TongDoanhThu_TatCa_HD = (
+    SELECT SUM(TongDoanhThu)
+    FROM BaoCaoDoanhThuThang
+);
+
+-- Đổi tên cột TongDoanhThu_TatCa_HD thành TongDoanhThuThangHienTai
+EXEC sp_rename 'BaoCaoDoanhThuThang.TongDoanhThu_TatCa_HD', 'TongDoanhThuThangHienTai', 'COLUMN';
+
+```
+
+Để sử dụng chức năng báo cáo doanh thu tháng như sau
+
+Cách thứ nhất: xem bảng báo cáo doanh thu tháng
+
+```sql
+-- Xem bảng báo cáo doanh thu hàng tháng
+SELECT * FROM BaoCaoDoanhThuThang;
+```
+
+
+Cách thứ hai: xem chuỗi json hiển thị tổng doanh thu tháng này là bao nhiêu
+
+```sql
+SELECT TOP 1 CONCAT('{Tong_Doanh_Thu_Thang_Nay_La": ', CONVERT(NVARCHAR(MAX), TongDoanhThuThangHienTai), '}') AS JsonString
+FROM BaoCaoDoanhThuThang;
+```
+kết quả khi xem tổng doanh thu tháng bằng chuỗi json
+
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/adfacdf5-5bd6-42e0-9d8b-0c18f3c5b885)
+
+
+
+
+
+
+
+
