@@ -252,26 +252,39 @@ Sử dụng các thủ tục đã tạo với vật tư
 ----- test các thủ tục đã tạo
 -- thêm vật tư
 EXEC ThemVatTu 
-    @MaVT = 'VT011',
-    @TenVT = 'mũ bảo hiểm',
-    @DVT = 'chiếc',
+    @MaVT = 'VT200',
+    @TenVT = N'Balo',
+    @DVT = N'chiếc',
     @SLHangCon = 50;
+```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/5e8f390c-663c-482c-96bb-058ea0133fce)
+```sql
 --- cập nhật
 EXEC CapNhatVatTu 
-    @MaVT = 'VT011',
-    @TenVT = 'mũ bảo hiểm nữ',
-    @DVT = 'Chiếc',
+    @MaVT = 'VT200',
+    @TenVT = N'Balo Vippro',
+    @DVT = N'Chiếc',
     @SLHangCon = 50;
+```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/e9732e50-d714-48ca-9a25-261ab9c085f8)
+```sql
 --- xoá vật tư
 EXEC XoaVatTu 
-    @MaVT = 'VT011';
+    @MaVT = 'VT200';
+```
+```sql
 -- tìm kiếm vật tư
 EXEC TimKiemVatTu 
-    @Keyword = 'bút';
+    @Keyword = 'balo';
+```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/c0160f28-d052-4411-a237-79ee89318a6a)
+```sql
 --- kiểm tra hàng tồn kho bằng mã vt
 EXEC KiemTraTonKho 
-    @MaVT = 'VT002';
+    @MaVT = 'VT200';
 ```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/805d57b9-33d4-4029-9405-7019a894996f)
+
 **2. Tạo các thủ tục đối với hoá đơn**
 Xử lý chức năng thêm, sửa, xoá, cập nhật hoá đơn
 ```sql
@@ -352,36 +365,52 @@ GO
 ```
 Sử dụng các thủ tục đã tạo đối với hoá đơn bán: 
 ```sql
------ test các thủ tục hoá đơn bán
 ----1 thêm hoá đơn bán
 EXEC ThemHoaDonBan 
-    @MaHD = 'HD006',
-    @NgayXuat = '2024-06-06',
-    @HoTenKH = 'Vũ Thị F',
-    @DiaChiKH = '789 Đường NMO, Đà Nẵng';
+    @MaHD = 'HD201',
+    @NgayXuat = '2023-12-06',
+    @HoTenKH = 'Hoang Van Hai',
+    @DiaChiKH = 'Ha Noi';
+```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/b3be29a6-8872-4eed-a62c-b45e3bc851da)
+
+```sql
 ----2 sửa hoá đơn bán
 EXEC SuaHoaDonBan 
-    @MaHD = 'HD006',
-    @NgayXuat = '2024-06-07',
-    @HoTenKH = 'Vũ Thị F',
-    @DiaChiKH = '789 Đường NMO, Đà Nẵng, Việt Nam';
+    @MaHD = 'HD201',
+    @NgayXuat = '2023-12-07',
+    @HoTenKH = 'Hoang Van Hai',
+    @DiaChiKH = 'Thai Nguyen';
+```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/b72ca841-7035-4342-8ebf-37b7c5dfd0fd)
+
+```sql
 ---3 xoá hoá đơn bán
 EXEC XoaHoaDonBan 
-    @MaHD = 'HD006';
+    @MaHD = 'HD201';
+```
+```sql
 ---4 thêm cho tiết hoá đơn bán
 EXEC ThemChiTietHoaDon 
-    @MaHD = 'HD005',
+    @MaHD = 'HD201',
     @MaVT = 'VT002',
     @DonGia = 10000,
-    @SLBan = 3;
+    @SLBan = 5;
+```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/7ddc2cef-d332-4b75-acec-5e6c839c2838)
+
+```sql
 ----5 cập nhật số lượng bán trong bảng(HangXuat) 
 EXEC CapNhatSoLuongChiTietHoaDon 
-    @MaHD = 'HD005',
+    @MaHD = 'HD201',
     @MaVT = 'VT002',
-    @SLBan = 5;
+    @SLBan = 20;
+```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/9633114b-13bd-4d5c-883d-ac303bd48d83)
+```sql
 ---6 xoá chi tiết hoá đơn(HangXuat)
 EXEC XoaChiTietHoaDon 
-    @MaHD = 'HD005',
+    @MaHD = 'HD201',
     @MaVT = 'VT002';
 ```
 **Tìm kiếm hoá đơn theo thời gian mong muốn**
@@ -436,6 +465,8 @@ EXEC LayHoaDonTheoThangNam
     @Month = 6,
     @Year = 2024;
 ```
+![image](https://github.com/lythanhan03/Qu-n-l-b-n-h-ng/assets/168841951/793d0a8d-c825-4e55-951e-81b8bbf0120a)
+
 **3. Tạo các chức năng**
 
 *3.1 Kiểm tra hàng tồn kho, nhập hàng lại*
